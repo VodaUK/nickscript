@@ -9,4 +9,4 @@ channels_to_track = [
     "@exposergmd",
 ]
 
-notification_text = "Новый пост в канале {channel_name}:\n\n{post_text}\n\nСсылка: {post_link}"
+notification_text = "{post_link}"
