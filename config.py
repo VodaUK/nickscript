@@ -1,11 +1,7 @@
-import os
-
-api_id = os.environ.get("API_ID")
-api_hash = os.environ.get("API_HASH")
-bot_token = os.environ.get("BOT_TOKEN")
-
-user_to_notify_username = "@rodionmurzo"
-channels_to_track = ["@exposergmd" "@testnorg"]
-notification_text = "{post_link}"
-
-admin_usernames = ["lumohn"]
+api_id = 20115593
+api_hash = 'd80553a3842de01257fe6bc570116c88'
+bot_token = '7535013553:AAGLMtFHqUJMnYSZRLxZ1oLreZIvhQqGKtw'
+notify_users_usernames = [""]
+channels_to_track = [""]
+notification_text = ""
+admin_usernames = ["lumohn", "nickxd"]
