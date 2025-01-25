@@ -7,6 +7,7 @@ user_to_notify_username = "@rodionmurzo"
 
 channels_to_track = [
     "@exposergmd",
+    "@testnorg",
 ]
 
 notification_text = "{post_link}"
