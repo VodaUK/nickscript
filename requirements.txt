@@ -1,1 +1,2 @@
-telethon==1.38.1
+pyaes
+telethon==1.38.0
