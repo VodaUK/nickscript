@@ -1,56 +1,56 @@
-# Channel Post Notifier Bot
+# Бот-уведомитель о постах каналов
 
-[![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://t.me/nickxd_bot)
+[![Telegram Бот](https://img.shields.io/badge/Telegram-Бот-blue.svg)](https://t.me/nickxd_bot)
 
-Keep up with your favorite Telegram channels effortlessly. This bot forwards new posts from the channels you choose directly to you, or a select group of users, ensuring you never miss an update.
+Простой бот для пересылки новых постов из Telegram-каналов. Будьте в курсе обновлений, получая все в одном месте.
 
-## ✨ Key Features
+## ✨ Возможности
 
-*   **Instant Updates:** Get notified the moment new content is posted in tracked channels.
-*   **Centralized Content:** Aggregate updates from multiple channels into a single, convenient stream.
-*   **Flexible User Management:** Easily add and remove users who receive notifications, perfect for teams or groups.
-*   **Effortless Setup:** Get the bot running quickly with a straightforward configuration process.
-*   **Intuitive Admin Panel:** Manage all bot settings directly within Telegram using simple commands.
+*   **Мгновенные уведомления:**  Узнавайте о новых постах сразу.
+*   **Отслеживание каналов:** Мониторьте несколько каналов.
+*   **Управление пользователями:**  Настройте, кто будет получать уведомления.
+*   **Простая установка:** Быстрый запуск.
+*   **Панель управления:** Настройки бота в Telegram.
 
-## 🛠️ Technologies
+## 🛠️ Технологии
 
-*   **Python:** Built with the versatility and power of Python.
-*   **aiogram 3.17.0:** Leveraging the robust and asynchronous aiogram framework for efficient bot operations.
-*   **Telethon:** Utilizing Telethon for seamless and reliable access to Telegram channel content.
+*   **Python:** Основной код бота.
+*   **aiogram 3.17.0:**  Для управления ботом в Telegram.
+*   **Telethon:** Для доступа к постам каналов.
 
-## 🚀 Quick Start
+## 🚀 Быстрый старт
 
-1.  **Clone:**
+1.  **Клонировать:**
     ```bash
-    git clone [repository-link]
-    cd [repository-directory]
+    git clone [ссылка-на-репозиторий]
+    cd [директория-проекта]
     ```
-2.  **Install:**
+2.  **Установить:**
     ```bash
     pip install -r requirements.txt
     ```
-3.  **Configure:**  Edit `config.py` with:
-    *   Your Telegram API keys (`api_id`, `api_hash`)
-    *   Bot token (`bot_token`)
-    *   Admin usernames (`admin_usernames`)
-    *   Channels to monitor (`channels_to_track`)
-    *   Custom notification message (`notification_text`)
-4.  **Run:**
+3.  **Настроить:** Файл `config.py`:
+    *   Ключи API Telegram (`api_id`, `api_hash`)
+    *   Токен бота (`bot_token`)
+    *   Администраторы (`admin_usernames`)
+    *   Каналы для отслеживания (`channels_to_track`)
+    *   Текст уведомления (`notification_text`)
+4.  **Запустить:**
     ```bash
     python main.py
     ```
 
-## 🕹️ Bot Commands
+## 🕹️ Команды бота
 
-*   `/start`: Opens the settings menu to configure the bot.
-*   Navigate through the interactive menu to manage:
-    *   Notification users
-    *   Tracked channels
-    *   Custom notification text
-    *   View current bot settings
+*   `/start`: Открыть меню настроек.
+*   В меню:
+    *   Управление пользователями
+    *   Управление каналами
+    *   Изменить текст уведомления
+    *   Просмотр настроек
 
-Administrators can use the menu to tailor the bot to their specific notification needs.
+Администраторы управляют ботом через меню.
 
-## 📄 License
+## 📄 Лицензия
 
-[Channel by @lumohn](https://t.me/lumohn)
+[Канал @lumohn](https://t.me/lumohn)
