@@ -1,2 +1,2 @@
-pyaes==1.7.0
+pyaes==1.7.0 --only-binary=:all:
 telethon==1.38.1
