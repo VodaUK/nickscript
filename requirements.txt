@@ -1,2 +1,1 @@
-pyaes
 telethon==1.38.1
