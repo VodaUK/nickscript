@@ -22,8 +22,8 @@
 
 1.  **Клонировать:**
     ```bash
-    git clone [ссылка-на-репозиторий]
-    cd [директория-проекта]
+    git clone https://github.com/VodaUK/nickscript.git
+    cd [путь к проекту, допустим: cd Download/nickscript]
     ```
 2.  **Установить:**
     ```bash
