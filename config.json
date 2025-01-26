@@ -1,0 +1,9 @@
+{
+    "api_id": 12345,
+    "api_hash": "your_hash",
+    "bot_token": "your_token",
+    "admin_usernames": ["@admin"],
+    "notify_users_usernames": ["@user1"],
+    "channels_to_track": ["@channel1"],
+    "notification_text": "Новый пост!"
+}
