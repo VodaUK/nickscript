@@ -2,6 +2,7 @@ import asyncio
 import logging
 import signal
 import json
+from datetime import datetime
 from telethon import TelegramClient, events
 from telethon.tl.types import Channel, Chat
 from aiogram import Bot, Dispatcher, types, F
@@ -32,6 +33,10 @@ class ChannelForm(StatesGroup):
 
 class TextForm(StatesGroup):
     edit_text = State()
+
+class MultiAction(StatesGroup):
+    selecting = State()
+    confirming = State()
 
 telethon_handler = None
 
@@ -75,6 +80,25 @@ def create_text_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="Изменить", callback_data="text_edit")
     builder.button(text="Удалить", callback_data="text_delete")  # Новая кнопка
+    builder.button(text="Назад", callback_data="menu_main")
+    builder.adjust(1)
+    return builder.as_markup()
+
+def load_history():
+    try:
+        with open('history.json') as f:
+            return json.load(f)
+    except:
+        return {"stats": {}, "history": []}
+
+def save_history(data):
+    with open('history.json', 'w') as f:
+        json.dump(data, f, indent=2)
+
+def create_stats_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(text="История", callback_data="stats_history")
+    builder.button(text="Очистить историю", callback_data="stats_clear")
     builder.button(text="Назад", callback_data="menu_main")
     builder.adjust(1)
     return builder.as_markup()
@@ -282,6 +306,59 @@ async def edit_text(message: types.Message, state: FSMContext):
         logger.error(f"Edit text error: {e}")
     finally:
         await state.clear()
+
+@dp.message(ChannelForm.add_channel)
+@dp.message(UserForm.add_user)
+async def bulk_add_handler(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    items = [i.strip() for i in message.text.split(',')]
+    
+    success = []
+    errors = []
+    
+    for item in items:
+        try:
+            if current_state == ChannelForm.add_channel:
+                entity = await telethon_client.get_entity(item)
+                if isinstance(entity, (Channel, Chat)):
+                    config['channels_to_track'].append(item)
+            else:
+                if item not in config['notify_users_usernames']:
+                    config['notify_users_usernames'].append(item)
+            success.append(item)
+        except Exception as e:
+            errors.append(f"{item}: {str(e)}")
+    
+    if success:
+        save_config()
+        await update_telethon_channels()
+    
+    response = []
+    if success:
+        response.append(f"✅ Успешно: {', '.join(success)}")
+    if errors:
+        response.append(f"❌ Ошибки:\n" + '\n'.join(errors))
+    
+    await message.answer('\n'.join(response))
+    await state.clear()
+
+@dp.callback_query(F.data.startswith("multi_remove_"))
+async def multi_remove_start(query: types.CallbackQuery, state: FSMContext):
+    category = query.data.split("_")[-1]
+    items = config[f"{category}_to_track"]
+    
+    await state.update_data(selected=[])
+    builder = InlineKeyboardBuilder()
+    for item in items:
+        builder.button(text=f"◻️ {item}", callback_data=f"toggle_{category}_{item}")
+    builder.button(text="Подтвердить", callback_data=f"confirm_remove_{category}")
+    builder.button(text="Отмена", callback_data=f"menu_{category}")
+    builder.adjust(1)
+    
+    await query.message.edit_text(
+        "Выберите элементы:",
+        reply_markup=builder.as_markup()
+    )
 
 async def shutdown(signal, loop):
     logger.info("Завершение работы...")
