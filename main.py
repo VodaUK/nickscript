@@ -77,9 +77,18 @@ def create_text_keyboard():
 
 def is_admin(username: str) -> bool:
     if not username:
+        print(f"Username is None! Access denied.")
         return False
-    return f"@{username}" in config['admin_usernames']
 
+    formatted_username = f"@{username}"
+    print(f"Checking admin access for: {formatted_username}")
+
+    is_admin_user = formatted_username in config['admin_usernames']
+    print(f"Admin list: {config['admin_usernames']}")
+    print(f"Access granted: {is_admin_user}")
+
+    return is_admin_user
+    
 async def update_telethon_channels():
     global telethon_handler
     if telethon_handler:
@@ -102,16 +111,19 @@ async def update_telethon_channels():
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    if not message.from_user.username:
-        await message.answer("У вас не установлен username в Telegram!")
+    user = message.from_user
+    print(f"User ID: {user.id}, Username: {user.username}")
+
+    if not user.username:
+        await message.answer("❌ У вас не установлен username в Telegram!")
         return
 
-    if not is_admin(message.from_user.username):
-        await message.answer("Доступ запрещен")
+    if not is_admin(user.username):
+        await message.answer("🚫 Доступ запрещен")
         return
-        
+
     await message.answer("Настройки:", reply_markup=create_main_keyboard())
-    
+
 @dp.callback_query(MenuCallback.filter(F.category == "main"))
 async def main_menu(query: types.CallbackQuery):
     await query.message.edit_text("Настройки:", reply_markup=create_main_keyboard())
