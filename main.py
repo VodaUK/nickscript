@@ -81,7 +81,6 @@ def create_channels_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="Добавить", callback_data="channels_add")
     builder.button(text="Удалить", callback_data="channels_remove")
-    builder.button(text="Удалить всех", callback_data="channels_remove_all")
     builder.button(text="Назад", callback_data="menu_main")
     builder.adjust(1)
     return builder.as_markup()
@@ -157,7 +156,7 @@ async def menu_handler(query: types.CallbackQuery):
 async def users_menu(query: types.CallbackQuery):
     try:
         await query.message.edit_text(
-            text=f"Пользователи:\n{', '.join(config['notify_users_usernames'])}",
+            text=f"Пользователи:\n{', '.join(config['notify_users_usernames']) or 'Список пуст'}",
             reply_markup=create_users_keyboard()
         )
     except Exception as e:
@@ -180,23 +179,6 @@ async def users_actions(query: types.CallbackQuery, state: FSMContext):
         builder.button(text="Назад", callback_data="menu_users")
         builder.adjust(1)
         await query.message.edit_text("Выберите пользователей:", reply_markup=builder.as_markup())
-    elif action == "remove_all":
-        await remove_all_users(query)
-
-async def remove_all_users(query: types.CallbackQuery):
-    deleted = config['notify_users_usernames'].copy()
-    config['notify_users_usernames'].clear()
-    save_config()
-    history = load_history()
-    history['history'].append({
-        "action": "remove_all",
-        "category": "users",
-        "items": deleted,
-        "timestamp": datetime.now().isoformat()
-    })
-    save_history(history)
-    await query.answer(f"Удалено {len(deleted)} пользователей")
-    await users_menu(query)
 
 async def channels_menu(query: types.CallbackQuery):
     try:
@@ -223,23 +205,6 @@ async def channels_actions(query: types.CallbackQuery, state: FSMContext):
         builder.button(text="Назад", callback_data="menu_channels")
         builder.adjust(1)
         await query.message.edit_text("Выберите каналы:", reply_markup=builder.as_markup())
-    elif action == "remove_all":
-        await remove_all_channels(query)
-
-async def remove_all_channels(query: types.CallbackQuery):
-    deleted = config['channels_to_track'].copy()
-    config['channels_to_track'].clear()
-    save_config()
-    history = load_history()
-    history['history'].append({
-        "action": "remove_all",
-        "category": "channels",
-        "items": deleted,
-        "timestamp": datetime.now().isoformat()
-    })
-    save_history(history)
-    await query.answer(f"Удалено {len(deleted)} каналов")
-    await channels_menu(query)
 
 @dp.callback_query(F.data.startswith("toggle_"))
 async def toggle_selection(query: types.CallbackQuery, state: FSMContext):
@@ -341,7 +306,10 @@ async def bulk_add_handler(message: types.Message, state: FSMContext):
     if success:
         response.append(f"✅ Добавлено: {', '.join(success)}")
     if errors:
-        response.append(f"❌ Ошибки:\n" + '\n'.join(errors))
+        error_list = '\n'.join([f"• {e}" for e in errors[:3]])
+        if len(errors) > 3:
+            error_list += "\n..."
+        response.append(f"❌ Ошибки:\n{error_list}")
     
     await message.answer('\n'.join(response), reply_markup=create_main_keyboard())
     await state.clear()
@@ -349,7 +317,7 @@ async def bulk_add_handler(message: types.Message, state: FSMContext):
 async def text_menu(query: types.CallbackQuery):
     try:
         await query.message.edit_text(
-            text=f"Текст уведомления:\n{config['notification_text']}",
+            text=f"Текст уведомления:\n{config['notification_text'] or 'Не задан'}",
             reply_markup=create_text_keyboard()
         )
     except Exception as e:
@@ -397,20 +365,38 @@ async def stats_menu(query: types.CallbackQuery):
     text = f"""📊 Статистика:
 Пользователей: {len(config['notify_users_usernames'])}
 Каналов: {len(config['channels_to_track'])}
-Последняя активность: {stats.get('last_activity', 'нет данных')}"""
+Всего действий: {stats.get('total_actions', 0)}
+Последняя активность: {datetime.fromisoformat(stats['last_activity']).strftime('%d.%m.%Y %H:%M') if stats.get('last_activity') else 'нет данных'}"""
     await query.message.edit_text(text, reply_markup=create_stats_keyboard())
 
 @dp.callback_query(F.data == "stats_history")
 async def show_history(query: types.CallbackQuery):
     history_data = load_history()
     items = history_data['history']
+    
+    text = "📝 Последние 10 действий:\n\n"
+    for idx, entry in enumerate(reversed(items[-10:]), start=1):
+        text += f"{idx}. {format_history_entry(entry)}\n\n"
+
+    await query.message.edit_text(text, reply_markup=create_history_keyboard())
+
+def format_history_entry(entry):
+    action_map = {
+        "add": "➕ Добавлено",
+        "remove": "➖ Удалено",
+        "edit_text": "✏️ Изменен текст"
+    }
+    date = datetime.fromisoformat(entry['timestamp']).strftime("%d.%m.%Y %H:%M")
+    
+    if entry['action'] in ['add', 'remove']:
+        category = 'пользователей' if entry['category'] == 'users' else 'каналов'
+        return f"{action_map[entry['action']]} {len(entry['items'])} {category} ({date})"
+    return f"{action_map.get(entry['action'], entry['action'])} ({date})"
+
+def create_history_keyboard():
     builder = InlineKeyboardBuilder()
-    for idx, entry in enumerate(items[-10:], start=1):
-        builder.button(text=f"{idx}. {entry['action']} ({entry['timestamp'][:10]})", 
-                      callback_data=f"history_detail_{len(items)-10+idx-1}")
     builder.button(text="Назад", callback_data="menu_stats")
-    builder.adjust(1)
-    await query.message.edit_text("Последние 10 записей:", reply_markup=builder.as_markup())
+    return builder.as_markup()
 
 @dp.callback_query(F.data.startswith("history_detail_"))
 async def history_detail(query: types.CallbackQuery):
@@ -418,14 +404,24 @@ async def history_detail(query: types.CallbackQuery):
     history_data = load_history()
     try:
         entry = history_data['history'][idx]
-        text = f"""📝 Детали записи:
-Действие: {entry['action']}
-Категория: {entry.get('category', 'N/A')}
-Дата: {entry['timestamp']}
-Данные: {json.dumps(entry, indent=2, ensure_ascii=False)}"""
+        text = format_detailed_entry(entry)
         await query.message.edit_text(text, reply_markup=create_back_keyboard("stats"))
-    except IndexError:
-        await query.answer("Запись не найдена")
+    except Exception as e:
+        await query.answer("Ошибка отображения записи")
+
+def format_detailed_entry(entry):
+    date = datetime.fromisoformat(entry['timestamp']).strftime('%d.%m.%Y %H:%M')
+    text = f"📅 {date}\nДействие: {entry['action'].upper()}\n"
+    
+    if entry['action'] in ['add', 'remove']:
+        category = 'пользователей' if entry['category'] == 'users' else 'каналов'
+        text += f"Категория: {category}\n"
+        text += f"Количество: {len(entry['items'])}\n"
+        text += "Элементы:\n" + "\n".join(entry['items'])
+    elif entry['action'] == 'edit_text':
+        text += f"Старый текст:\n{entry['old']}\n\nНовый текст:\n{entry['new']}"
+    
+    return text
 
 @dp.callback_query(F.data == "stats_clear")
 async def clear_history(query: types.CallbackQuery):
@@ -453,3 +449,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
