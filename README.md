@@ -29,7 +29,7 @@
     ```bash
     pip install -r requirements.txt
     ```
-3.  **Настроить:** Файл `config.py`:
+3.  **Настроить:** Файл `config.json`:
     *   Ключи API Telegram (`api_id`, `api_hash`)
     *   Токен бота (`bot_token`)
     *   Администраторы (`admin_usernames`)
