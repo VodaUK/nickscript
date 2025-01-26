@@ -250,7 +250,7 @@ async def toggle_selection(query: types.CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     selected = user_data.get("selected", [])
     
-    items = config['notify_users_usernames'] if category == "users" else config['channels_to_track"]
+    items = config['notify_users_usernames'] if category == "users" else config['channels_to_track']
     
     if item in selected:
         selected.remove(item)
