@@ -1,9 +1,14 @@
 {
-    "api_id": 20115593,
-    "api_hash": "d80553a3842de01257fe6bc570116c88",
-    "bot_token": "7535013553:AAGLMtFHqUJMnYSZRLxZ1oLreZIvhQqGKtw",
-    "admin_usernames": ["@lumohn", "@nickxd"],
-    "notify_users_usernames": ["@rodionmurzo"],
-    "channels_to_track": ["@testnorg"],
-    "notification_text": ""
+  "api_id": 20115593,
+  "api_hash": "d80553a3842de01257fe6bc570116c88",
+  "bot_token": "7535013553:AAGLMtFHqUJMnYSZRLxZ1oLreZIvhQqGKtw",
+  "admin_usernames": [
+    "@lumohn"
+  ],
+  "notify_users_usernames": [
+    "@lumohn"
+  ],
+  "channels_to_track": ["@testnorg"],
+  "notification_text": "привет"
 }
+
