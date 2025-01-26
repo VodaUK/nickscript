@@ -38,11 +38,12 @@ telethon_handler = None
 def save_config():
     with open('config.json', 'w') as f:
         json.dump(config, f, indent=2)
+    logger.info("Config saved to config.json") # Добавлено логирование сохранения
 
 def create_back_keyboard(category: str):
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
-        text="Назад", 
+        text="Назад",
         callback_data=f"menu_{category}"
     ))
     return builder.as_markup()
@@ -93,7 +94,7 @@ async def update_telethon_channels():
         channel = await event.get_chat()
         post_link = f"https://t.me/{channel.username}/{event.message.id}"
         text = f"{config['notification_text']}\n\n------------\n{post_link}"
-        
+
         for user in config['notify_users_usernames']:
             try:
                 await telethon_client.send_message(user, text)
@@ -101,24 +102,25 @@ async def update_telethon_channels():
                 logger.error(f"Error sending to {user}: {e}")
 
     telethon_handler = handler
+    logger.info(f"Telethon handler updated for channels: {config['channels_to_track']}") # Логирование обновления
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
     user = message.from_user
     if not user.username:
-        await message.answer("❌ Установите username в настройках Telegram!")
+        await message.answer("Установите username в настройках Telegram!")
         return
 
     if not is_admin(user.username):
-        await message.answer("🚫 Доступ запрещен")
+        await message.answer("Доступ запрещен")
         return
 
-    await message.answer("⚙️ Панель управления:", reply_markup=create_main_keyboard())
+    await message.answer("Панель управления:", reply_markup=create_main_keyboard())
 
 @dp.callback_query(F.data == "menu_main")
 async def main_menu(query: types.CallbackQuery):
     try:
-        await query.message.edit_text("⚙️ Панель управления:", reply_markup=create_main_keyboard())
+        await query.message.edit_text("Панель управления:", reply_markup=create_main_keyboard())
         await query.answer()
     except TelegramBadRequest:
         pass
@@ -126,7 +128,7 @@ async def main_menu(query: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("menu_"))
 async def menu_handler(query: types.CallbackQuery):
     category = query.data.split("_")[1]
-    
+
     if category == "users":
         await users_menu(query)
     elif category == "channels":
@@ -137,7 +139,7 @@ async def menu_handler(query: types.CallbackQuery):
 async def users_menu(query: types.CallbackQuery):
     try:
         await query.message.edit_text(
-            text=f"👥 Пользователи:\n{', '.join(config['notify_users_usernames'])}",
+            text=f"Пользователи:\n{', '.join(config['notify_users_usernames'])}",
             reply_markup=create_users_keyboard()
         )
         await query.answer()
@@ -147,7 +149,7 @@ async def users_menu(query: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("users_"))
 async def users_actions(query: types.CallbackQuery, state: FSMContext):
     action = query.data.split("_")[1]
-    
+
     if action == "add":
         await query.message.edit_text(
             text="Введите @username пользователя:",
@@ -157,7 +159,7 @@ async def users_actions(query: types.CallbackQuery, state: FSMContext):
     elif action == "remove":
         builder = InlineKeyboardBuilder()
         for idx, user in enumerate(config['notify_users_usernames']):
-            builder.button(text=f"❌ {user}", callback_data=f"remove_user_{idx}")
+            builder.button(text=f"Удалить {user}", callback_data=f"remove_user_{idx}")
         builder.button(text="Назад", callback_data="menu_users")
         builder.adjust(1)
         await query.message.edit_text("Выберите пользователя:", reply_markup=builder.as_markup())
@@ -169,6 +171,7 @@ async def remove_user(query: types.CallbackQuery):
         idx = int(query.data.split("_")[-1])
         user = config['notify_users_usernames'].pop(idx)
         save_config()
+        await update_telethon_channels() # Важно обновить обработчик после изменения списка пользователей
         await query.answer(f"Удален: {user}")
         await users_menu(query)
     except Exception as e:
@@ -180,19 +183,110 @@ async def add_user(message: types.Message, state: FSMContext):
         username = message.text.strip().lower()
         if not username.startswith("@"):
             username = f"@{username}"
-            
+
         if username not in config['notify_users_usernames']:
             config['notify_users_usernames'].append(username)
             save_config()
-            
-        await message.answer("✅ Пользователь добавлен!", reply_markup=create_users_keyboard())
+            await update_telethon_channels() # Важно обновить обработчик после изменения списка пользователей
+
+        await message.answer("Пользователь добавлен!", reply_markup=create_users_keyboard())
     except Exception as e:
-        await message.answer("❌ Ошибка добавления")
+        await message.answer("Ошибка добавления")
         logger.error(f"Add user error: {e}")
     finally:
         await state.clear()
 
-# Аналогичные изменения для работы с каналами и текстом
+async def channels_menu(query: types.CallbackQuery):
+    try:
+        await query.message.edit_text(
+            text=f"Каналы:\n{', '.join(config['channels_to_track'])}",
+            reply_markup=create_channels_keyboard()
+        )
+        await query.answer()
+    except Exception as e:
+        logger.error(f"Channels menu error: {e}")
+
+@dp.callback_query(F.data.startswith("channels_"))
+async def channels_actions(query: types.CallbackQuery, state: FSMContext):
+    action = query.data.split("_")[1]
+
+    if action == "add":
+        await query.message.edit_text(
+            text="Введите @username канала:",
+            reply_markup=create_back_keyboard("channels")
+        )
+        await state.set_state(ChannelForm.add_channel)
+    elif action == "remove":
+        builder = InlineKeyboardBuilder()
+        for idx, channel in enumerate(config['channels_to_track']):
+            builder.button(text=f"Удалить {channel}", callback_data=f"remove_channel_{idx}")
+        builder.button(text="Назад", callback_data="menu_channels")
+        builder.adjust(1)
+        await query.message.edit_text("Выберите канал:", reply_markup=builder.as_markup())
+    await query.answer()
+
+@dp.callback_query(F.data.startswith("remove_channel_"))
+async def remove_channel(query: types.CallbackQuery):
+    try:
+        idx = int(query.data.split("_")[-1])
+        channel = config['channels_to_track'].pop(idx)
+        save_config()
+        await update_telethon_channels() # Важно обновить обработчик после изменения списка каналов
+        await query.answer(f"Удален: {channel}")
+        await channels_menu(query)
+    except Exception as e:
+        logger.error(f"Remove channel error: {e}")
+
+@dp.message(ChannelForm.add_channel)
+async def add_channel(message: types.Message, state: FSMContext):
+    try:
+        channel = message.text.strip().lower()
+        if not channel.startswith("@"):
+            channel = f"@{channel}"
+
+        entity = await telethon_client.get_entity(channel)
+        if isinstance(entity, (Channel, Chat)) and channel not in config['channels_to_track']:
+            config['channels_to_track'].append(channel)
+            save_config()
+            await update_telethon_channels() # Важно обновить обработчик после изменения списка каналов
+
+        await message.answer("Канал добавлен!", reply_markup=create_channels_keyboard())
+    except Exception as e:
+        await message.answer("Ошибка добавления канала")
+        logger.error(f"Add channel error: {e}")
+    finally:
+        await state.clear()
+
+async def text_menu(query: types.CallbackQuery):
+    try:
+        await query.message.edit_text(
+            text=f"Текст уведомления:\n{config['notification_text']}",
+            reply_markup=create_text_keyboard()
+        )
+        await query.answer()
+    except Exception as e:
+        logger.error(f"Text menu error: {e}")
+
+@dp.callback_query(F.data == "text_edit")
+async def text_edit_handler(query: types.CallbackQuery, state: FSMContext):
+    try:
+        await query.message.edit_text("Введите новый текст уведомления:")
+        await state.set_state(TextForm.edit_text)
+        await query.answer()
+    except Exception as e:
+        logger.error(f"Text edit error: {e}")
+
+@dp.message(TextForm.edit_text)
+async def edit_text(message: types.Message, state: FSMContext):
+    try:
+        config['notification_text'] = message.text
+        save_config()
+        await message.answer("Текст обновлен!", reply_markup=create_text_keyboard())
+    except Exception as e:
+        await message.answer("Ошибка сохранения")
+        logger.error(f"Edit text error: {e}")
+    finally:
+        await state.clear()
 
 async def shutdown(signal, loop):
     logger.info("Завершение работы...")
