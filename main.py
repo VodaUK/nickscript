@@ -304,15 +304,19 @@ async def shutdown(signal, loop):
 
 async def main():
     loop = asyncio.get_event_loop()
+
     for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(sig, loop)))
+        loop.add_signal_handler(
+            sig, 
+            lambda: asyncio.create_task(shutdown(sig, loop))
+        )
 
     await telethon_client.start()
     await update_telethon_channels()
-    await asyncio.gather(
-        dp.start_polling(bot),
-        telethon_client.run_until_disconnected()
-    )
+
+    await dp.start_polling(bot, skip_updates=True)  # Добавлен ключевой параметр
+
+    await telethon_client.run_until_disconnected()
 
 if __name__ == "__main__":
     asyncio.run(main())
