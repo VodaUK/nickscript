@@ -40,11 +40,12 @@ def save_config():
         json.dump(config, f, indent=2)
     logger.info("Config saved to config.json")
 
-    global config
+    # Перезагружаем конфигурацию из файла
     with open('config.json') as f:
+        global config # Объявление global config ПЕРЕД with open
         config = json.load(f)
     logger.info("Config reloaded from config.json")
-
+    
 def create_back_keyboard(category: str):
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
