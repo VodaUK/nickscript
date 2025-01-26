@@ -6,9 +6,9 @@
     "@lumohn"
   ],
   "notify_users_usernames": [
-    "@lumohn"
+    ""
   ],
-  "channels_to_track": ["@testnorg"],
-  "notification_text": "привет"
+  "channels_to_track": [""],
+  "notification_text": ""
 }
 
