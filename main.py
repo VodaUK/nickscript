@@ -34,10 +34,6 @@ class ChannelForm(StatesGroup):
 class TextForm(StatesGroup):
     edit_text = State()
 
-class MultiAction(StatesGroup):
-    selecting = State()
-    confirming = State()
-
 telethon_handler = None
 
 def save_config():
@@ -52,8 +48,12 @@ def load_history():
         return {"stats": {}, "history": []}
 
 def save_history(data):
+    data['stats'] = {
+        "total_actions": len(data['history']),
+        "last_activity": datetime.now().isoformat()
+    }
     with open('history.json', 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 def create_back_keyboard(category: str):
     builder = InlineKeyboardBuilder()
@@ -250,6 +250,8 @@ async def toggle_selection(query: types.CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     selected = user_data.get("selected", [])
     
+    items = config['notify_users_usernames'] if category == "users" else config['channels_to_track"]
+    
     if item in selected:
         selected.remove(item)
     else:
@@ -257,7 +259,6 @@ async def toggle_selection(query: types.CallbackQuery, state: FSMContext):
     
     await state.update_data(selected=selected)
     builder = InlineKeyboardBuilder()
-    items = config[f"{category}_to_track"]
     for i in items:
         emoji = "✅" if i in selected else "◻️"
         builder.button(text=f"{emoji} {i}", callback_data=f"toggle_{category}_{i}")
@@ -276,7 +277,11 @@ async def confirm_remove(query: types.CallbackQuery, state: FSMContext):
         await query.answer("Ничего не выбрано!")
         return
     
-    config[f"{category}_to_track"] = [item for item in config[f"{category}_to_track"] if item not in selected]
+    if category == "users":
+        config['notify_users_usernames'] = [u for u in config['notify_users_usernames'] if u not in selected]
+    else:
+        config['channels_to_track'] = [c for c in config['channels_to_track'] if c not in selected]
+    
     save_config()
     await update_telethon_channels()
     history = load_history()
@@ -339,7 +344,7 @@ async def bulk_add_handler(message: types.Message, state: FSMContext):
     if errors:
         response.append(f"❌ Ошибки:\n" + '\n'.join(errors))
     
-    await message.answer('\n'.join(response))
+    await message.answer('\n'.join(response), reply_markup=create_main_keyboard())
     await state.clear()
 
 async def text_menu(query: types.CallbackQuery):
@@ -383,7 +388,7 @@ async def edit_text(message: types.Message, state: FSMContext):
         "timestamp": datetime.now().isoformat()
     })
     save_history(history)
-    await message.answer("Текст обновлен!", reply_markup=create_text_keyboard())
+    await message.answer("Текст обновлен!", reply_markup=create_main_keyboard())
     await state.clear()
 
 @dp.callback_query(F.data == "menu_stats")
@@ -407,6 +412,21 @@ async def show_history(query: types.CallbackQuery):
     builder.button(text="Назад", callback_data="menu_stats")
     builder.adjust(1)
     await query.message.edit_text("Последние 10 записей:", reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data.startswith("history_detail_"))
+async def history_detail(query: types.CallbackQuery):
+    idx = int(query.data.split("_")[-1])
+    history_data = load_history()
+    try:
+        entry = history_data['history'][idx]
+        text = f"""📝 Детали записи:
+Действие: {entry['action']}
+Категория: {entry.get('category', 'N/A')}
+Дата: {entry['timestamp']}
+Данные: {json.dumps(entry, indent=2, ensure_ascii=False)}"""
+        await query.message.edit_text(text, reply_markup=create_back_keyboard("stats"))
+    except IndexError:
+        await query.answer("Запись не найдена")
 
 @dp.callback_query(F.data == "stats_clear")
 async def clear_history(query: types.CallbackQuery):
