@@ -1,8 +1,8 @@
 {
   "api_id": ,
   "api_hash": "",
-  "bot_token": "7535013553:AAGLMtFHqUJMnYSZRLxZ1oLreZIvhQqGKtw",
-  "admin_usernames": ["@n1ckxd"],
+  "bot_token": "",
+  "admin_usernames": ["@n1ckxd_off"],
   "notify_users_usernames": [],
   "channels_to_track": [],
   "notification_text": ""
