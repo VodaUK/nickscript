@@ -73,7 +73,6 @@ def create_users_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="Добавить", callback_data="users_add")
     builder.button(text="Удалить", callback_data="users_remove")
-    builder.button(text="Удалить всех", callback_data="users_remove_all")
     builder.button(text="Назад", callback_data="menu_main")
     builder.adjust(1)
     return builder.as_markup()
