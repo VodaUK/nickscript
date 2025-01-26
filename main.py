@@ -77,17 +77,8 @@ def create_text_keyboard():
 
 def is_admin(username: str) -> bool:
     if not username:
-        print(f"Username is None! Access denied.")
         return False
-
-    formatted_username = f"@{username}"
-    print(f"Checking admin access for: {formatted_username}")
-
-    is_admin_user = formatted_username in config['admin_usernames']
-    print(f"Admin list: {config['admin_usernames']}")
-    print(f"Access granted: {is_admin_user}")
-
-    return is_admin_user
+    return username in config['admin_usernames']
     
 async def update_telethon_channels():
     global telethon_handler
