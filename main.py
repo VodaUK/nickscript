@@ -388,5 +388,9 @@ async def main():
         await asyncio.gather(
             dp.start_polling(bot),
             telethon_client.run_until_disconnected()
-)
-    
+        )
+    finally:
+        await telethon_client.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
