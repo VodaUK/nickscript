@@ -76,7 +76,9 @@ def create_text_keyboard():
     return builder.as_markup()
 
 def is_admin(username: str) -> bool:
-    return username in config['admin_usernames']
+    if not username:
+        return False
+    return f"@{username}" in config['admin_usernames']
 
 async def update_telethon_channels():
     global telethon_handler
@@ -99,11 +101,16 @@ async def update_telethon_channels():
     telethon_handler = handler
 
 @dp.message(CommandStart())
-async def start(message: types.Message):
-    if not is_admin(message.from_user.username):
-        await message.answer("Доступ запрещен")
-        return
-    await message.answer("Настройки:", reply_markup=create_main_keyboard())
+   async def start(message: types.Message):
+       if not message.from_user.username:
+           await message.answer("У вас не установлен username в Telegram!")
+           return
+       
+       if not is_admin(message.from_user.username):
+           await message.answer("Доступ запрещен")
+           return
+       
+       await message.answer("Настройки:", reply_markup=create_main_keyboard())
 
 @dp.callback_query(MenuCallback.filter(F.category == "main"))
 async def main_menu(query: types.CallbackQuery):
