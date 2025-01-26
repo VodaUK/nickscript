@@ -55,6 +55,11 @@ def save_history(data):
     with open('history.json', 'w') as f:
         json.dump(data, f, indent=2)
 
+def create_back_keyboard(category: str):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="Назад", callback_data=f"menu_{category}"))
+    return builder.as_markup()
+
 def create_main_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="Пользователи", callback_data="menu_users")
