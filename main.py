@@ -440,8 +440,12 @@ async def shutdown(signal, loop):
 
 async def main():
     loop = asyncio.get_event_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(sig, loop)))
+    try:
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(sig, loop)))
+    except NotImplementedError:
+        pass
+    
     await telethon_client.start()
     await update_telethon_channels()
     await dp.start_polling(bot, skip_updates=True)
@@ -449,4 +453,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
