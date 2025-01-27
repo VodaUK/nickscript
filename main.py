@@ -137,15 +137,68 @@ async def update_telethon_channels():
     
     @telethon_client.on(events.NewMessage(chats=config['channels_to_track']))
     async def handler(event):
-        channel = await event.get_chat()
-        post_link = f"https://t.me/{channel.username}/{event.message.id}"
-        text = f"{config['notification_text']}\n------------\n{post_link}"
         for user in config['notify_users_usernames']:
-            try:
-                await telethon_client.send_message(user, text)
-            except Exception as e:
-                logger.error(f"Error sending to {user}: {e}")
+            await send_notification(user, event)
+    
     telethon_handler = handler
+
+async def process_channel_input(input_str: str):
+    try:
+        input_str = input_str.strip()
+        if input_str.startswith("https://t.me/+"):
+            entity = await telethon_client.get_entity(input_str)
+            return f"-100{entity.id}"  # Правильный формат ID для приватных каналов
+        
+        if input_str.startswith("@"):
+            return input_str.lower()
+        
+        if input_str.startswith("https://t.me/c/"):
+            parts = input_str.split("/")
+            return f"-100{parts[-2]}"  # Конвертация в numeric ID
+        
+        match = re.match(r"https://t.me/(.+?)/(\d+)", input_str)
+        if match:
+            return f"@{match.group(1)}"
+            
+        return input_str
+    except Exception as e:
+        logger.error(f"Error processing channel input: {e}")
+        raise ValueError("Неверный формат канала")
+
+async def send_notification(user: str, event):
+    notification_type = config.get('notification_type', 'link')
+    message = event.message
+    chat = await event.get_chat()
+    
+    try:
+        if notification_type == 'link':
+            # Получаем корректный chat_id для ссылки
+            if isinstance(chat, Channel):
+                chat_id = chat.id
+                if chat.username:
+                    post_link = f"https://t.me/{chat.username}/{message.id}"
+                else:
+                    post_link = f"https://t.me/c/{chat_id}/{message.id}"
+            else:
+                post_link = f"https://t.me/c/{chat.id}/{message.id}"
+            
+            text = config['notification_text'] or "Новое сообщение из канала!"
+            await telethon_client.send_message(
+                user, 
+                f"{text}\n\n🔗 Ссылка: {post_link}",
+                link_preview=False
+            )
+            
+        elif notification_type == 'forward':
+            await telethon_client.forward_messages(user, message)
+            if config['notification_text']:
+                await telethon_client.send_message(user, config['notification_text'])
+            
+        elif notification_type == 'text' and config['notification_text']:
+            await telethon_client.send_message(user, config['notification_text'])
+            
+    except Exception as e:
+        logger.error(f"Error sending to {user}: {e}")
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
